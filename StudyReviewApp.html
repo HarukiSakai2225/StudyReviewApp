@@ -482,7 +482,7 @@
         $('#progressRing').style.setProperty('--progress', `${percent * 3.6}deg`);
         $('#progressText').textContent = `${completedToday}/${total}`;
         $('#progressTitle').textContent = total ? `今日の進捗 ${completedToday} / ${total}` : '今日の復習はありません';
-        $('#progressCaption').textContent = total ? (completedToday === total ? '今日の復習はすべて完了しました。' : '完了すると、次の復習予定が残ります。') : '学習範囲を追加すると、ここに予定が表示されます。';
+        $('#progressCaption').textContent = total ? (completedToday === total ? '今日の復習はすべて完了しました。' : '') : '学習範囲を追加すると、ここに予定が表示されます。';
         const list = $('#taskList');
         if (!tasks.length) {
           list.innerHTML = `<div class="empty-state"><div><div class="empty-symbol">✓</div><h3>${remaining ? '今日の復習はありません' : '学習を追加しましょう'}</h3><p>${remaining ? '次の復習予定はカレンダーで確認できます。' : '科目と範囲を登録すると、5回分の復習予定を作成します。'}</p><button class="primary-button" id="emptyAddButton" type="button">＋ 学習を追加</button></div></div>`;
@@ -717,6 +717,17 @@
       $('#studiedOn').addEventListener('change', updateSchedulePreview);
       $('#previousMonth').addEventListener('click', () => { displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1); renderCalendar(); });
       $('#nextMonth').addEventListener('click', () => { displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1); renderCalendar(); });
+      let calendarWheelTimer;
+      $('#calendar').addEventListener('wheel', (event) => {
+        if (Math.abs(event.deltaY) < Math.abs(event.deltaX) || event.deltaY === 0) return;
+        event.preventDefault();
+        const direction = event.deltaY > 0 ? 1 : -1;
+        clearTimeout(calendarWheelTimer);
+        calendarWheelTimer = setTimeout(() => {
+          displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + direction, 1);
+          renderCalendar();
+        }, 120);
+      }, { passive: false });
       $('#resetButton').addEventListener('click', () => { if (studies.length && confirm('すべての学習記録を削除しますか？ この操作は取り消せません。')) { studies = []; saveStudies(); renderAll(); showToast('すべての学習記録を削除しました'); } });
       $('#studiedOn').value = dateKey(today);
       ensureDemoData();
