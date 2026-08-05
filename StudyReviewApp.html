@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090909" />
+  <title>復習リズム | 学習の復習管理</title>
+  <style>
+    :root {
+      --ink: #f3f3f3;
+      --muted: #a4a4a4;
+      --line: #303030;
+      --paper: #171717;
+      --ground: #090909;
+      --purple: #f3f3f3;
+      --purple-dark: #cfcfcf;
+      --lavender: #292929;
+      --mint: #252525;
+      --mint-ink: #e1e1e1;
+      --peach: #242424;
+      --peach-ink: #e1e1e1;
+      --red: #e87575;
+      --shadow: 0 14px 38px rgba(0, 0, 0, .28);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--ground); color: var(--ink); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app-shell { min-height: 100vh; padding: 30px clamp(18px, 5vw, 72px) 46px; }
+
+    .topbar { max-width: 1440px; margin: 0 auto 22px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand h1 { font-size: 20px; margin: 0; letter-spacing: -.04em; }
+    .interval-summary { display: block; color: var(--muted); margin: 3px 0 0; padding: 0; border: 0; background: transparent; font-size: 11px; text-align: left; }
+    .interval-summary:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-button, .secondary-button { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; height: 40px; transition: .2s ease; }
+    .icon-button { width: 40px; display: grid; place-items: center; }
+    .icon-button:hover, .secondary-button:hover { border-color: #707070; background: #242424; color: #fff; }
+    .icon-button svg { width: 18px; height: 18px; }
+    .secondary-button { padding: 0 14px; font-size: 13px; }
+    .primary-button { border: 0; color: #101010; background: var(--purple); border-radius: 12px; height: 42px; padding: 0 17px; font-size: 13px; font-weight: 700; box-shadow: 0 8px 14px rgba(0, 0, 0, .3); transition: .2s ease; }
+    .primary-button:hover { background: var(--purple-dark); transform: translateY(-1px); }
+
+    main { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: minmax(350px, .92fr) minmax(510px, 1.35fr); gap: 22px; align-items: start; }
+    .panel { background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 22px; }
+    .today-panel { padding: 23px; min-height: 575px; }
+    .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .panel-title { margin: 0; font-size: 19px; letter-spacing: -.045em; }
+    .panel-subtitle { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
+    .date-chip { background: var(--lavender); border-radius: 10px; color: var(--ink); padding: 7px 9px; font-size: 11px; white-space: nowrap; }
+
+    .progress-card { margin: 20px 0 17px; padding: 16px; border-radius: 16px; background: #222; display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 13px; }
+    .progress-ring { --progress: 0deg; width: 48px; height: 48px; border-radius: 50%; background: conic-gradient(var(--purple) var(--progress), #393939 0); display: grid; place-items: center; position: relative; }
+    .progress-ring::after { content: ""; position: absolute; width: 38px; height: 38px; border-radius: 50%; background: #222; }
+    .progress-ring span { z-index: 1; font-size: 10px; font-weight: 800; }
+    .progress-card strong { font-size: 13px; display: block; }
+    .progress-card p { color: var(--muted); font-size: 11px; margin: 4px 0 0; }
+
+    .task-list { display: grid; gap: 10px; }
+    .task-card { border: 1px solid #303030; border-radius: 16px; padding: 14px; transition: .2s ease; }
+    .task-card:hover { border-color: #707070; box-shadow: 0 5px 17px rgba(0, 0, 0, .25); }
+    .task-top { display: flex; align-items: flex-start; gap: 11px; }
+    .subject-icon { width: 37px; height: 37px; border-radius: 12px; display: grid; place-items: center; flex: none; font-size: 16px; background: var(--lavender); color: var(--ink); }
+    .task-card:nth-child(3n + 2) .subject-icon { background: var(--mint); color: var(--mint-ink); }
+    .task-card:nth-child(3n) .subject-icon { background: var(--peach); color: var(--peach-ink); }
+    .task-info { min-width: 0; flex: 1; }
+    .task-info h4 { margin: 1px 0 4px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-info p { color: var(--muted); font-size: 11px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .step-badge { color: var(--ink); background: var(--lavender); border-radius: 8px; padding: 4px 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .task-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 13px; }
+    .mini-link { border: 0; color: var(--muted); background: transparent; padding: 6px 7px; font-size: 11px; }
+    .mini-link:hover { color: var(--red); }
+    .done-button { border: 0; border-radius: 9px; padding: 7px 10px; color: #111; background: var(--purple); font-size: 11px; font-weight: 700; }
+    .done-button:hover { background: var(--purple-dark); }
+    .empty-state { min-height: 270px; display: grid; place-items: center; text-align: center; padding: 30px 15px; }
+    .empty-state .empty-symbol { width: 52px; height: 52px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 50%; background: var(--lavender); font-size: 23px; }
+    .empty-state h3 { font-size: 15px; margin: 0 0 6px; }
+    .empty-state p { color: var(--muted); max-width: 250px; margin: 0 0 16px; font-size: 12px; line-height: 1.75; }
+    .hint { margin-top: 17px; color: var(--muted); font-size: 11px; line-height: 1.7; border-top: 1px solid var(--line); padding-top: 15px; }
+    .hint b { color: var(--ink); }
+
+    .calendar-panel { padding: 23px; }
+    .calendar-toolbar { display: flex; align-items: center; gap: 8px; }
+    .month-label { min-width: 112px; text-align: center; font-size: 16px; font-weight: 800; letter-spacing: -.03em; }
+    .month-button { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 9px; background: #292929; color: var(--ink); font-size: 18px; line-height: 1; }
+    .month-button:hover { background: #3a3a3a; color: #fff; }
+    .calendar { margin-top: 20px; }
+    .weekday-row, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .weekday { color: var(--muted); text-align: center; padding: 0 0 10px; font-size: 10px; font-weight: 700; }
+    .weekday:first-child, .weekday:last-child { color: var(--muted); }
+    .calendar-day { min-height: 82px; padding: 7px 6px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); background: transparent; text-align: left; transition: .15s; }
+    .calendar-day:nth-child(7n) { border-right: 0; }
+    .calendar-day:not(.outside):hover { background: #202020; }
+    .calendar-day.outside { background: #121212; color: #686868; cursor: default; }
+    .calendar-day.selected { background: #252525; box-shadow: inset 0 0 0 1px #686868; }
+    .day-number { width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); font-size: 11px; font-weight: 650; }
+    .outside .day-number { color: #6c6c6c; }
+    .today .day-number { color: #111; background: var(--purple); }
+    .calendar-event { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; margin-top: 4px; border-radius: 5px; padding: 3px 4px; color: #e8e8e8; background: #343434; font-size: 9px; font-weight: 700; }
+    .calendar-event.event-1, .calendar-event.event-2 { color: #e8e8e8; background: #2b2b2b; }
+    .more-events { display: block; margin: 3px 3px 0; color: var(--muted); font-size: 9px; }
+    .agenda { margin-top: 20px; padding: 16px; border-radius: 15px; background: #222; }
+    .agenda-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .agenda-heading h3 { margin: 0; font-size: 13px; }
+    .agenda-heading p { color: var(--muted); font-size: 11px; margin: 0; }
+    .agenda-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .agenda-item { position: relative; border: 1px solid #383838; background: #191919; border-radius: 9px; padding: 7px 9px; color: var(--ink); font-size: 11px; text-align: left; }
+    button.agenda-item:hover { border-color: #6b6b6b; background: #252525; }
+    .agenda-delete-icon { position: absolute; top: 6px; right: 6px; width: 13px; height: 13px; color: #ef626b; opacity: 0; transform: translateY(2px); transition: opacity .16s ease, transform .16s ease; }
+    button.agenda-item:hover .agenda-delete-icon, button.agenda-item:focus-visible .agenda-delete-icon { opacity: 1; transform: translateY(0); }
+    .agenda-item b { display: block; font-size: 11px; }
+    .agenda-item span { color: var(--muted); font-size: 10px; }
+    .agenda-empty { color: var(--muted); font-size: 11px; margin: 12px 0 2px; }
+
+    dialog { width: min(480px, calc(100vw - 32px)); padding: 0; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 24px 70px rgba(0, 0, 0, .5); }
+    dialog::backdrop { background: rgba(25, 26, 48, .45); backdrop-filter: blur(2px); }
+    .dialog-inner { padding: 24px; }
+    .dialog-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+    .dialog-header h2 { margin: 0; font-size: 19px; letter-spacing: -.04em; }
+    .dialog-header p { color: var(--muted); margin: 5px 0 0; font-size: 12px; }
+    .close-button { width: 30px; height: 30px; border: 0; background: #292929; color: var(--ink); border-radius: 9px; font-size: 19px; }
+    .form-grid { display: grid; gap: 15px; margin-top: 21px; }
+    .field { display: grid; gap: 7px; }
+    .field label { font-size: 12px; font-weight: 700; }
+    .field input { width: 100%; height: 43px; color: var(--ink); background: #202020; border: 1px solid #404040; border-radius: 10px; padding: 0 11px; outline: 0; font-size: 13px; }
+    .field input:focus { border-color: #858585; box-shadow: 0 0 0 3px #303030; }
+    .field-note { color: var(--muted); margin: -1px 0 0; font-size: 10px; line-height: 1.5; }
+    .schedule-preview { color: var(--muted); padding: 11px 12px; border-radius: 10px; background: #222; font-size: 11px; line-height: 1.6; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+    .danger-button { border: 1px solid #ae565d; color: #ffd8db; background: #492329; border-radius: 12px; height: 42px; padding: 0 14px; font-size: 12px; font-weight: 700; }
+    .danger-button:hover { background: #653038; }
+    .calendar-delete-info { margin-top: 20px; padding: 13px; color: var(--muted); background: #222; border-radius: 11px; font-size: 12px; line-height: 1.7; }
+    .calendar-delete-info b { color: var(--ink); }
+    .toast { position: fixed; z-index: 3; left: 50%; bottom: 26px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; color: #111; background: #f3f3f3; border-radius: 11px; padding: 10px 14px; font-size: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.4); transition: .25s ease; }
+    .toast.visible { transform: translate(-50%, 0); opacity: 1; }
+    [hidden] { display: none !important; }
+    .page-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 7px; }
+    .page-range input { min-width: 0; }
+    .page-range span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .history-view { max-width: 1440px; margin: 0 auto; }
+    .history-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .history-heading { display: flex; align-items: center; gap: 12px; }
+    .history-heading h2 { margin: 0; font-size: 21px; letter-spacing: -.04em; }
+    .history-heading p { color: var(--muted); margin: 4px 0 0; font-size: 12px; }
+    .history-summary { text-align: right; }
+    .history-summary span { display: block; color: var(--muted); font-size: 11px; }
+    .history-summary b { display: block; margin-top: 2px; font-size: 18px; }
+    .history-panel { padding: 23px; }
+    .history-panel h3 { margin: 0; font-size: 16px; letter-spacing: -.03em; }
+    .history-panel > p { color: var(--muted); margin: 5px 0 0; font-size: 11px; }
+    .chart-key { display: flex; flex-wrap: wrap; gap: 7px 13px; margin: 18px 0 10px; }
+    .key-item { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; }
+    .key-color { width: 9px; height: 9px; border-radius: 3px; }
+    .review-level-0 { background: #aeb4c0; }
+    .review-level-1 { background: #f2cf52; }
+    .review-level-2 { background: #e96b6f; }
+    .review-level-3 { background: #6fc9df; }
+    .review-level-4 { background: #4f8fdc; }
+    .review-level-5 { background: #8a6ad3; }
+    .bar-chart { position: relative; height: 326px; padding: 20px 13px 35px 41px; border-bottom: 1px solid var(--line); }
+    .chart-guide { position: absolute; right: 13px; left: 41px; border-top: 1px dashed #383838; color: var(--muted); font-size: 9px; }
+    .chart-guide.top { top: 20px; }
+    .chart-guide.middle { top: 143px; }
+    .chart-guide.bottom { top: 266px; }
+    .chart-guide span { position: absolute; right: calc(100% + 8px); top: -6px; white-space: nowrap; }
+    .bars { position: relative; z-index: 1; height: 246px; display: flex; align-items: end; justify-content: flex-start; gap: clamp(18px, 5vw, 62px); overflow-x: auto; padding: 0 12px 0 5px; }
+    .bar-column { width: clamp(55px, 10vw, 94px); min-width: 55px; height: 100%; display: flex; flex-direction: column; justify-content: end; align-items: center; }
+    .bar-total { height: 16px; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .bar-stack { width: 100%; min-height: 2px; display: flex; flex-direction: column-reverse; overflow: hidden; border-radius: 7px 7px 2px 2px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+    .bar-segment { width: 100%; min-height: 3px; border-top: 1px solid rgba(255,255,255,.55); transition: filter .15s; }
+    .bar-segment:hover { filter: brightness(.88); }
+    .bar-label { width: 110px; margin-top: 7px; color: var(--ink); overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 700; }
+    .bar-label small { color: var(--muted); font-size: 9px; font-weight: 600; }
+    .history-empty { height: 245px; display: grid; place-items: center; color: var(--muted); text-align: center; font-size: 12px; }
+    .record-summary { margin-top: 20px; padding-top: 19px; border-top: 1px solid var(--line); }
+    .record-summary h3 { font-size: 14px; }
+    .record-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 9px; margin-top: 12px; }
+    .record-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 11px; }
+    .record-item b { font-size: 12px; }
+    .record-item span { color: var(--muted); font-size: 10px; }
+    .record-item .record-pages { color: var(--ink); grid-row: span 2; align-self: center; font-size: 12px; font-weight: 800; }
+
+    @media (max-width: 900px) {
+      .app-shell { padding: 18px 15px 32px; }
+      main { grid-template-columns: 1fr; }
+      .today-panel { min-height: auto; }
+    }
+    @media (max-width: 560px) {
+      .topbar { margin-bottom: 18px; }
+      .top-actions { gap: 6px; }
+      .top-actions .secondary-button { padding: 0 9px; }
+      .calendar-panel, .today-panel { padding: 17px; border-radius: 18px; }
+      .calendar-day { min-height: 64px; padding: 5px 3px; }
+      .calendar-event { font-size: 8px; padding: 2px; }
+      .calendar-event:nth-of-type(n+3) { display: none; }
+      .month-label { min-width: 102px; }
+      .history-panel { padding: 17px; }
+      .history-top { align-items: flex-start; }
+      .bar-chart { padding-left: 35px; }
+      .chart-guide { left: 35px; }
+      .bars { gap: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell" id="plannerView">
+    <header class="topbar">
+      <div class="brand"><div><h1>復習管理</h1><button class="interval-summary" id="openSettingsButton" type="button" title="復習間隔を調整" aria-label="復習間隔を調整"><span id="intervalSummary"></span>　編集</button></div></div>
+      <div class="top-actions">
+        <button class="secondary-button" id="historyButton" type="button">実績一覧</button>
+        <button class="icon-button" id="resetButton" type="button" title="すべての学習記録を削除" aria-label="すべての学習記録を削除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v6M14 10v6"/></svg>
+        </button>
+        <button class="primary-button" id="openDialogButton" type="button">＋ 学習を追加</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel today-panel" aria-labelledby="todayTitle">
+        <div class="panel-header">
+          <div><h2 class="panel-title" id="todayTitle">今日やること</h2><p class="panel-subtitle" id="todayDate"></p></div>
+          <span class="date-chip" id="todayChip"></span>
+        </div>
+        <div class="progress-card">
+          <div class="progress-ring" id="progressRing"><span id="progressText">0/0</span></div>
+          <div><strong id="progressTitle">今日の復習はありません</strong><p id="progressCaption">次の学習範囲を追加すると、ここに予定が表示されます。</p></div>
+        </div>
+        <div class="task-list" id="taskList"></div>
+        <div class="hint"><b>未実行だった場合：</b>未完了の復習予定をすべて1日後ろへずらします。</div>
+      </section>
+
+      <section class="panel calendar-panel" aria-labelledby="calendarTitle">
+        <div class="panel-header">
+          <div><h2 class="panel-title" id="calendarTitle">復習カレンダー</h2><p class="panel-subtitle">1か月の復習予定</p></div>
+          <div class="calendar-toolbar" aria-label="月を切り替える">
+            <button class="month-button" id="previousMonth" type="button" aria-label="前の月">‹</button>
+            <span class="month-label" id="monthLabel"></span>
+            <button class="month-button" id="nextMonth" type="button" aria-label="次の月">›</button>
+          </div>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <section class="agenda" aria-live="polite">
+          <div class="agenda-heading"><h3 id="agendaTitle">日付を選択</h3><p id="agendaCount"></p></div>
+          <div class="agenda-list" id="agendaList"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <section class="app-shell" id="historyView" hidden aria-labelledby="historyTitle">
+    <div class="history-view">
+      <header class="history-top">
+        <div class="history-heading">
+          <button class="secondary-button" id="backToPlannerButton" type="button">← 戻る</button>
+          <div><h2 id="historyTitle">実績一覧</h2><p>科目ごとの学習ページ数</p></div>
+        </div>
+        <div class="history-summary"><span>合計ページ数</span><b id="totalPages">0 ページ</b></div>
+      </header>
+      <section class="panel history-panel">
+        <h3>科目別の学習量</h3>
+        <p>教材の最終ページを100%として表示します。色は完了した復習回数です。</p>
+        <div class="chart-key" id="chartKey"></div>
+        <div id="historyChart"></div>
+        <section class="record-summary">
+          <h3>学習記録</h3>
+          <div class="record-list" id="recordList"></div>
+        </section>
+      </section>
+    </div>
+  </section>
+
+  <dialog id="studyDialog">
+    <form class="dialog-inner" id="studyForm" method="dialog">
+      <div class="dialog-header">
+        <div><h2>学習を追加</h2><p>復習日は5回分、自動で登録されます。</p></div>
+        <button class="close-button" id="closeDialogButton" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="subject">科目名</label><input id="subject" name="subject" list="subjectSuggestions" placeholder="例：英語" maxlength="40" required /><datalist id="subjectSuggestions"></datalist></div>
+        <div class="field"><label for="pageStart">やった範囲</label><div class="page-range"><input id="pageStart" name="pageStart" type="number" min="1" step="1" placeholder="開始（自動）" /><span>〜</span><input id="pageEnd" name="pageEnd" type="number" min="1" step="1" placeholder="終了" required /><span>ページ</span></div><p class="field-note" id="startPageHint"></p></div>
+        <div class="field"><label for="lastPage">教材の最終ページ</label><input id="lastPage" name="lastPage" type="number" min="1" step="1" placeholder="初回のみ必須" /><p class="field-note" id="lastPageHint"></p></div>
+        <div class="field"><label for="studiedOn">学習した日</label><input id="studiedOn" name="studiedOn" type="date" required /></div>
+        <div class="schedule-preview" id="schedulePreview"></div>
+      </div>
+      <div class="dialog-actions"><button class="secondary-button" id="cancelDialogButton" type="button">キャンセル</button><button class="primary-button" type="submit">予定に追加</button></div>
+    </form>
+  </dialog>
+  <dialog id="settingsDialog">
+    <form class="dialog-inner" id="settingsForm" method="dialog">
+      <div class="dialog-header">
+        <div><h2>復習間隔を調整</h2><p>学習した日から何日後に復習するかを設定します。</p></div>
+        <button class="close-button" id="closeSettingsButton" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="interval0">1回目</label><input id="interval0" type="number" min="1" step="1" required /></div>
+        <div class="field"><label for="interval1">2回目</label><input id="interval1" type="number" min="1" step="1" required /></div>
+        <div class="field"><label for="interval2">3回目</label><input id="interval2" type="number" min="1" step="1" required /></div>
+        <div class="field"><label for="interval3">4回目</label><input id="interval3" type="number" min="1" step="1" required /></div>
+        <div class="field"><label for="interval4">5回目</label><input id="interval4" type="number" min="1" step="1" required /></div>
+        <div class="schedule-preview">保存すると、これからの予定と未完了の復習予定に反映します。</div>
+      </div>
+      <div class="dialog-actions"><button class="secondary-button" id="cancelSettingsButton" type="button">キャンセル</button><button class="primary-button" type="submit">保存</button></div>
+    </form>
+  </dialog>
+  <dialog id="calendarDeleteDialog">
+    <div class="dialog-inner">
+      <div class="dialog-header">
+        <div><h2>予定を削除</h2><p>削除する範囲を選んでください。</p></div>
+        <button class="close-button" id="closeCalendarDeleteButton" type="button" aria-label="閉じる">×</button>
+      </div>
+      <div class="calendar-delete-info" id="calendarDeleteInfo"></div>
+      <div class="dialog-actions"><button class="secondary-button" id="deleteOnlyThisButton" type="button">この日だけ削除</button><button class="danger-button" id="deleteFromThisButton" type="button">この日以降をすべて削除</button></div>
+    </div>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'review-rhythm-studies-v1';
+      const SETTINGS_KEY = 'review-rhythm-settings-v1';
+      const DEMO_DATA_KEY = 'review-rhythm-demo-seeded-v3';
+      const DEFAULT_INTERVALS = [1, 2, 4, 7, 30];
+      const REVIEW_LABELS = ['1回目', '2回目', '3回目', '4回目', '5回目'];
+      const SUBJECT_ICONS = ['✦', '◒', '◈', '◇', '✎', '◎'];
+      const $ = (selector) => document.querySelector(selector);
+      const today = startOfDay(new Date());
+      let displayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      let selectedDate = dateKey(today);
+      let studies = loadStudies();
+      let reviewIntervals = loadSettings();
+      let calendarDeleteTarget = null;
+
+      function startOfDay(value) { const d = new Date(value); d.setHours(0, 0, 0, 0); return d; }
+      function addDays(value, days) { const d = startOfDay(value); d.setDate(d.getDate() + days); return d; }
+      function dateKey(value) { const d = startOfDay(value); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+      function parseKey(value) { const [year, month, day] = value.split('-').map(Number); return new Date(year, month - 1, day); }
+      function isSameDay(a, b) { return dateKey(a) === dateKey(b); }
+      function formatJapaneseDate(value, options = { month: 'long', day: 'numeric', weekday: 'short' }) { return new Intl.DateTimeFormat('ja-JP', options).format(startOfDay(value)); }
+      function intervalLabel(days) { return `${days}日後`; }
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]); }
+      function pageCount(study) {
+        const start = Number(study.pageStart);
+        const end = Number(study.pageEnd);
+        return Number.isInteger(start) && Number.isInteger(end) && start > 0 && end >= start ? end - start + 1 : 0;
+      }
+      function finalPageFor(study) {
+        const finalPage = Number(study.lastPage);
+        const pageEnd = Number(study.pageEnd);
+        return Number.isInteger(finalPage) && finalPage >= pageEnd ? finalPage : pageEnd;
+      }
+      function studyRange(study) {
+        const pages = pageCount(study);
+        const finalPage = finalPageFor(study);
+        return pages ? `p. ${study.pageStart} 〜 ${study.pageEnd}（${pages}ページ / 全${finalPage}ページ）` : (study.topic || 'ページ範囲なし');
+      }
+      function reviewCount(study) { return study.reviews.filter((review) => review.completedOn).length; }
+      function nextReviewDate(study) { return study.reviews.filter((review) => !review.completedOn).map((review) => review.dueOn).sort()[0] || null; }
+      function studiesForSubject(subject) {
+        const normalized = subject.trim();
+        return studies.filter((study) => study.subject.trim() === normalized);
+      }
+      function latestUnreviewedStudy(subject) {
+        return studiesForSubject(subject)
+          .filter((study) => study.reviews.some((review) => !review.completedOn) && Number.isInteger(Number(study.pageEnd)))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] || null;
+      }
+      function automaticStartPage(subject) {
+        const subjectStudies = studiesForSubject(subject);
+        if (!subjectStudies.length) return { page: 1, message: '初回登録のため、開始ページが空欄なら1ページ目から登録します。' };
+        const previous = latestUnreviewedStudy(subject);
+        if (previous) return { page: Number(previous.pageEnd) + 1, message: `未完了の最新範囲（p. ${previous.pageStart}〜${previous.pageEnd}）の続きから登録します。` };
+        return { page: null, message: '未完了の復習記録がないため、開始ページを入力してください。' };
+      }
+      function automaticLastPage(subject) {
+        const subjectStudies = studiesForSubject(subject);
+        const previous = subjectStudies
+          .filter((study) => Number.isInteger(Number(study.lastPage)) && Number(study.lastPage) >= Number(study.pageEnd))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+        if (previous) return { page: Number(previous.lastPage), message: `前回と同じ最終ページ（p. ${previous.lastPage}）を使用します。` };
+        return { page: null, message: subjectStudies.length ? '前回の最終ページ情報がないため、教材の最終ページを入力してください。' : (subject.trim() ? '初回登録のため、教材の最終ページを入力してください。' : '科目名を入力すると、最終ページの自動入力候補を表示します。') };
+      }
+
+      function loadStudies() {
+        try {
+          const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(value) ? value.map((study) => ({ ...study, reviews: Array.isArray(study.reviews) ? study.reviews : [] })) : [];
+        } catch { return []; }
+      }
+      function loadSettings() {
+        try {
+          const intervals = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+          return Array.isArray(intervals) && intervals.length === 5 && intervals.every((value, index) => Number.isInteger(value) && value > 0 && (!index || value > intervals[index - 1])) ? intervals : [...DEFAULT_INTERVALS];
+        } catch { return [...DEFAULT_INTERVALS]; }
+      }
+      function saveStudies() { localStorage.setItem(STORAGE_KEY, JSON.stringify(studies)); }
+      function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(reviewIntervals)); }
+
+      function makeDemoStudy(subject, pageStart, pageEnd, lastPage, completedSteps, nextOffset, index) {
+        const base = addDays(today, -(8 + index));
+        return {
+          id: `demo-v3-${index}`,
+          isExample: true,
+          subject,
+          pageStart,
+          pageEnd,
+          lastPage,
+          studiedOn: dateKey(base),
+          lastChecked: dateKey(today),
+          createdAt: new Date(Date.now() - (index + 1) * 3600000).toISOString(),
+          reviews: reviewIntervals.map((interval, step) => ({
+            step,
+            dueOn: step < completedSteps ? dateKey(addDays(today, -(completedSteps - step))) : dateKey(addDays(today, nextOffset + (step - completedSteps) * 3)),
+            completedOn: step < completedSteps ? dateKey(addDays(today, -(completedSteps - step))) : null
+          }))
+        };
+      }
+      function ensureDemoData() {
+        if (localStorage.getItem(DEMO_DATA_KEY)) return;
+        const demoStudies = [
+          makeDemoStudy('数学', 1, 168, 200, 5, 0, 0),
+          makeDemoStudy('物理', 1, 138, 160, 4, 5, 1),
+          makeDemoStudy('生物基礎', 1, 83, 180, 3, 2, 2),
+          makeDemoStudy('日本史', 1, 32, 220, 1, 1, 3),
+          makeDemoStudy('英語', 1, 10, 250, 0, 0, 4)
+        ];
+        studies = studies.filter((study) => !study.isExample && !String(study.id).startsWith('demo-'));
+        studies.push(...demoStudies);
+        localStorage.setItem(DEMO_DATA_KEY, 'true');
+        saveStudies();
+      }
+
+      // 未実行の日をまたいだ分だけ、未完了の予定全体を1日ずつ後ろへ送ります。
+      function shiftMissedSchedules() {
+        let changed = false;
+        studies.forEach((study) => {
+          study.reviews ??= [];
+          let cursor = study.lastChecked || study.studiedOn;
+          let checkDate = parseKey(cursor);
+          while (checkDate < today) {
+            const key = dateKey(checkDate);
+            const hasDue = study.reviews.some((review) => !review.completedOn && review.dueOn === key);
+            if (hasDue) {
+              study.reviews.forEach((review) => {
+                if (!review.completedOn) review.dueOn = dateKey(addDays(parseKey(review.dueOn), 1));
+              });
+              changed = true;
+            }
+            checkDate = addDays(checkDate, 1);
+          }
+          study.lastChecked = dateKey(today);
+        });
+        if (changed || studies.length) saveStudies();
+      }
+
+      function getPendingReviews(onDate) {
+        const key = typeof onDate === 'string' ? onDate : dateKey(onDate);
+        return studies.flatMap((study) => study.reviews.filter((review) => !review.completedOn && review.dueOn === key).map((review) => ({ study, review }))).sort((a, b) => a.study.createdAt.localeCompare(b.study.createdAt));
+      }
+      function studyIcon(study) { return SUBJECT_ICONS[(study.subject.charCodeAt(0) || 0) % SUBJECT_ICONS.length]; }
+
+      function renderAll() { renderIntervalSummary(); renderSubjectSuggestions(); renderToday(); renderCalendar(); renderAgenda(); renderHistory(); }
+      function renderIntervalSummary() {
+        $('#intervalSummary').textContent = reviewIntervals.map(intervalLabel).join('・');
+      }
+      function renderSubjectSuggestions() {
+        const subjects = [...new Set(studies.map((study) => study.subject.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+        $('#subjectSuggestions').innerHTML = subjects.map((subject) => `<option value="${escapeHtml(subject)}"></option>`).join('');
+        updateStartPageHint();
+      }
+      function renderToday() {
+        const tasks = getPendingReviews(today);
+        const remaining = studies.reduce((count, study) => count + study.reviews.filter((review) => !review.completedOn).length, 0);
+        $('#todayDate').textContent = formatJapaneseDate(today, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+        $('#todayChip').textContent = `${tasks.length} 件の予定`;
+        const completedToday = studies.reduce((count, study) => count + study.reviews.filter((review) => review.completedOn === dateKey(today)).length, 0);
+        const total = tasks.length + completedToday;
+        const percent = total ? Math.round((completedToday / total) * 100) : 0;
+        $('#progressRing').style.setProperty('--progress', `${percent * 3.6}deg`);
+        $('#progressText').textContent = `${completedToday}/${total}`;
+        $('#progressTitle').textContent = total ? `今日の進捗 ${completedToday} / ${total}` : '今日の復習はありません';
+        $('#progressCaption').textContent = total ? (completedToday === total ? '今日の復習はすべて完了しました。' : '完了すると、次の復習予定が残ります。') : '学習範囲を追加すると、ここに予定が表示されます。';
+        const list = $('#taskList');
+        if (!tasks.length) {
+          list.innerHTML = `<div class="empty-state"><div><div class="empty-symbol">✓</div><h3>${remaining ? '今日の復習はありません' : '学習を追加しましょう'}</h3><p>${remaining ? '次の復習予定はカレンダーで確認できます。' : '科目と範囲を登録すると、5回分の復習予定を作成します。'}</p><button class="primary-button" id="emptyAddButton" type="button">＋ 学習を追加</button></div></div>`;
+          $('#emptyAddButton').addEventListener('click', openDialog);
+          return;
+        }
+        list.innerHTML = tasks.map(({ study, review }) => `
+          <article class="task-card">
+            <div class="task-top"><div class="subject-icon">${studyIcon(study)}</div><div class="task-info"><h4>${escapeHtml(study.subject)}</h4><p>${escapeHtml(studyRange(study))}</p></div><span class="step-badge">${REVIEW_LABELS[review.step]}</span></div>
+            <div class="task-actions"><button class="done-button" type="button" data-complete="${study.id}:${review.step}">復習を完了</button></div>
+          </article>`).join('');
+        list.querySelectorAll('[data-complete]').forEach((button) => button.addEventListener('click', () => completeReview(button.dataset.complete)));
+      }
+
+      function renderCalendar() {
+        const year = displayMonth.getFullYear();
+        const month = displayMonth.getMonth();
+        $('#monthLabel').textContent = `${year}年 ${month + 1}月`;
+        const first = new Date(year, month, 1);
+        const offset = first.getDay();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        const previousLast = new Date(year, month, 0).getDate();
+        const cells = [];
+        for (let slot = 0; slot < 42; slot++) {
+          const number = slot - offset + 1;
+          let cellDate, outside = false;
+          if (number < 1) { cellDate = new Date(year, month - 1, previousLast + number); outside = true; }
+          else if (number > lastDay) { cellDate = new Date(year, month + 1, number - lastDay); outside = true; }
+          else { cellDate = new Date(year, month, number); }
+          const key = dateKey(cellDate);
+          const events = getPendingReviews(key);
+          const classes = ['calendar-day'];
+          if (outside) classes.push('outside');
+          if (isSameDay(cellDate, today)) classes.push('today');
+          if (key === selectedDate) classes.push('selected');
+          const visibleEvents = events.slice(0, 2).map(({ study }, index) => `<span class="calendar-event event-${index % 3}">${escapeHtml(study.subject)}</span>`).join('');
+          const extra = events.length > 2 ? `<span class="more-events">+${events.length - 2} 件</span>` : '';
+          cells.push(`<button type="button" class="${classes.join(' ')}" data-date="${key}" ${outside ? 'tabindex="-1"' : ''}><span class="day-number">${cellDate.getDate()}</span>${visibleEvents}${extra}</button>`);
+        }
+        $('#calendar').innerHTML = `<div class="weekday-row"><div class="weekday">日</div><div class="weekday">月</div><div class="weekday">火</div><div class="weekday">水</div><div class="weekday">木</div><div class="weekday">金</div><div class="weekday">土</div></div><div class="calendar-grid">${cells.join('')}</div>`;
+        $('#calendar').querySelectorAll('.calendar-day:not(.outside)').forEach((cell) => cell.addEventListener('click', () => { selectedDate = cell.dataset.date; renderCalendar(); renderAgenda(); }));
+      }
+
+      function renderAgenda() {
+        const items = getPendingReviews(selectedDate);
+        const selected = parseKey(selectedDate);
+        $('#agendaTitle').textContent = formatJapaneseDate(selected, { month: 'long', day: 'numeric', weekday: 'short' }) + ' の予定';
+        $('#agendaCount').textContent = items.length ? `${items.length} 件` : '';
+        const agendaList = $('#agendaList');
+        agendaList.innerHTML = items.length ? items.map(({ study, review }) => `<button class="agenda-item" type="button" data-calendar-delete="${study.id}:${review.step}" aria-label="${escapeHtml(study.subject)}の予定を削除"><svg class="agenda-delete-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v6M14 10v6"/></svg><b>${escapeHtml(study.subject)}</b><span>${escapeHtml(studyRange(study))} ・ ${REVIEW_LABELS[review.step]}</span></button>`).join('') : '<p class="agenda-empty">この日の復習予定はありません。</p>';
+        agendaList.querySelectorAll('[data-calendar-delete]').forEach((button) => button.addEventListener('click', () => openCalendarDeleteDialog(button.dataset.calendarDelete)));
+      }
+
+      function reviewPosition(study) {
+        const next = nextReviewDate(study);
+        if (next) return parseKey(next).getTime();
+        const completed = study.reviews.filter((review) => review.completedOn).map((review) => review.completedOn).sort().pop();
+        return completed ? parseKey(completed).getTime() : 0;
+      }
+      function renderHistory() {
+        const records = studies.filter((study) => pageCount(study) > 0);
+        const total = records.reduce((sum, study) => sum + pageCount(study), 0);
+        $('#totalPages').textContent = `${total} ページ`;
+        const levels = ['未復習', '1回', '2回', '3回', '4回', '5回'];
+        $('#chartKey').innerHTML = levels.map((label, level) => `<span class="key-item"><i class="key-color review-level-${level}"></i>${label}</span>`).join('');
+        const recordList = $('#recordList');
+        if (!records.length) {
+          $('#historyChart').innerHTML = '<div class="history-empty">ページ範囲を登録した学習記録がありません。</div>';
+          recordList.innerHTML = '';
+          return;
+        }
+        const bySubject = new Map();
+        records.forEach((study) => {
+          if (!bySubject.has(study.subject)) bySubject.set(study.subject, []);
+          bySubject.get(study.subject).push(study);
+        });
+        const groups = [...bySubject.entries()].map(([subject, entries]) => ({
+          subject,
+          entries: entries.sort((a, b) => reviewPosition(a) - reviewPosition(b) || a.createdAt.localeCompare(b.createdAt)),
+          pages: entries.reduce((sum, study) => sum + pageCount(study), 0),
+          lastPage: Math.max(...entries.map((study) => finalPageFor(study)))
+        })).sort((a, b) => b.pages - a.pages || a.subject.localeCompare(b.subject, 'ja'));
+        const barHtml = groups.map((group) => {
+          const progress = Math.min(100, (group.pages / group.lastPage) * 100);
+          const height = Math.max(3, progress);
+          const segments = group.entries.map((study) => {
+            const completed = Math.min(5, reviewCount(study));
+            const next = nextReviewDate(study);
+            const title = `${study.subject} ${studyRange(study)} / 復習 ${completed}回${next ? ` / 次回 ${formatJapaneseDate(parseKey(next), { month: 'numeric', day: 'numeric' })}` : ' / すべて完了'}`;
+            return `<span class="bar-segment review-level-${completed}" style="height:${(pageCount(study) / group.pages) * 100}%" title="${escapeHtml(title)}"></span>`;
+          }).join('');
+          return `<div class="bar-column"><div class="bar-stack" style="height:${height}%">${segments}</div><div class="bar-label">${escapeHtml(group.subject)} <small>${group.pages} / ${group.lastPage}p</small></div></div>`;
+        }).join('');
+        $('#historyChart').innerHTML = `<div class="bar-chart"><div class="chart-guide top"><span>100%</span></div><div class="chart-guide middle"><span>50%</span></div><div class="chart-guide bottom"><span>0%</span></div><div class="bars">${barHtml}</div></div>`;
+        recordList.innerHTML = [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((study) => {
+          const completed = reviewCount(study);
+          const next = nextReviewDate(study);
+          return `<article class="record-item"><div><b>${escapeHtml(study.subject)}</b><span>${escapeHtml(studyRange(study))}</span></div><strong class="record-pages">${pageCount(study)}p</strong><span>復習 ${completed} / 5 回${next ? ` ・次回 ${formatJapaneseDate(parseKey(next), { month: 'numeric', day: 'numeric' })}` : ' ・完了'}</span></article>`;
+        }).join('');
+      }
+      function showHistory() { renderHistory(); $('#plannerView').hidden = true; $('#historyView').hidden = false; window.scrollTo(0, 0); }
+      function showPlanner() { $('#historyView').hidden = true; $('#plannerView').hidden = false; window.scrollTo(0, 0); }
+
+      function openSettingsDialog() {
+        reviewIntervals.forEach((interval, index) => { $(`#interval${index}`).value = interval; });
+        $('#settingsDialog').showModal();
+      }
+      function closeSettingsDialog() { $('#settingsDialog').close(); }
+      function applySettings(event) {
+        event.preventDefault();
+        const intervals = REVIEW_LABELS.map((_, index) => Number($(`#interval${index}`).value));
+        if (!intervals.every((value, index) => Number.isInteger(value) && value > 0 && (!index || value > intervals[index - 1]))) {
+          showToast('復習間隔は1以上の昇順で入力してください');
+          return;
+        }
+        reviewIntervals = intervals;
+        studies.forEach((study) => {
+          const pending = study.reviews.filter((review) => !review.completedOn).sort((a, b) => a.step - b.step);
+          if (!pending.length) return;
+          const anchor = pending[0];
+          const anchorDate = parseKey(anchor.dueOn);
+          pending.forEach((review) => {
+            review.dueOn = dateKey(addDays(anchorDate, reviewIntervals[review.step] - reviewIntervals[anchor.step]));
+          });
+        });
+        saveSettings();
+        saveStudies();
+        closeSettingsDialog();
+        renderAll();
+        showToast('復習間隔を更新しました');
+      }
+
+      function openCalendarDeleteDialog(value) {
+        const [studyId, stepValue] = value.split(':');
+        const study = studies.find((item) => item.id === studyId);
+        const review = study?.reviews.find((item) => item.step === Number(stepValue) && !item.completedOn);
+        if (!study || !review) return;
+        calendarDeleteTarget = { studyId, step: review.step };
+        $('#calendarDeleteInfo').innerHTML = `<b>${escapeHtml(study.subject)}</b><br>${escapeHtml(studyRange(study))} ・ ${REVIEW_LABELS[review.step]}（${formatJapaneseDate(parseKey(review.dueOn), { month: 'numeric', day: 'numeric' })}）`;
+        $('#calendarDeleteDialog').showModal();
+      }
+      function closeCalendarDeleteDialog() { calendarDeleteTarget = null; $('#calendarDeleteDialog').close(); }
+      function deleteCalendarSchedule(deleteFollowing) {
+        if (!calendarDeleteTarget) return;
+        const study = studies.find((item) => item.id === calendarDeleteTarget.studyId);
+        if (!study) return;
+        if (deleteFollowing) {
+          study.reviews = study.reviews.filter((review) => review.completedOn || review.step < calendarDeleteTarget.step);
+        } else {
+          study.reviews = study.reviews.filter((review) => review.step !== calendarDeleteTarget.step);
+        }
+        const removedCount = deleteFollowing ? 'この日以降の予定を削除しました' : 'この日の予定を削除しました';
+        closeCalendarDeleteDialog();
+        saveStudies();
+        renderAll();
+        showToast(removedCount);
+      }
+
+      function updateStartPageHint() {
+        const subject = $('#subject').value.trim();
+        const hint = $('#startPageHint');
+        const lastPageHint = $('#lastPageHint');
+        if (!subject) {
+          hint.textContent = '科目名を入力すると、開始ページの自動入力候補を表示します。';
+          lastPageHint.textContent = automaticLastPage(subject).message;
+          return;
+        }
+        hint.textContent = automaticStartPage(subject).message;
+        lastPageHint.textContent = automaticLastPage(subject).message;
+      }
+      function openDialog() { $('#studyDialog').showModal(); $('#subject').focus(); updateSchedulePreview(); updateStartPageHint(); }
+      function closeDialog() { $('#studyDialog').close(); }
+      function updateSchedulePreview() {
+        const value = $('#studiedOn').value || dateKey(today);
+        const dates = reviewIntervals.map((interval) => `${intervalLabel(interval)}：${formatJapaneseDate(addDays(parseKey(value), interval), { month: 'numeric', day: 'numeric' })}`);
+        $('#schedulePreview').innerHTML = '<b>登録される復習日</b><br>' + dates.join('　');
+      }
+      function addStudy(event) {
+        event.preventDefault();
+        const subject = $('#subject').value.trim();
+        const enteredStart = $('#pageStart').value.trim();
+        const pageEnd = Number($('#pageEnd').value);
+        const enteredLastPage = $('#lastPage').value.trim();
+        const studiedOn = $('#studiedOn').value;
+        const automaticStart = automaticStartPage(subject).page;
+        const automaticLast = automaticLastPage(subject).page;
+        const pageStart = enteredStart ? Number(enteredStart) : automaticStart;
+        const lastPage = enteredLastPage ? Number(enteredLastPage) : automaticLast;
+        if (!subject || !Number.isInteger(pageStart) || !Number.isInteger(pageEnd) || !Number.isInteger(lastPage) || pageStart < 1 || pageEnd < pageStart || lastPage < pageEnd || !studiedOn) {
+          showToast('範囲と教材の最終ページを正しく入力してください');
+          return;
+        }
+        const base = parseKey(studiedOn);
+        const study = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          subject, pageStart, pageEnd, lastPage, studiedOn, lastChecked: studiedOn, createdAt: new Date().toISOString(),
+          reviews: reviewIntervals.map((interval, step) => ({ step, dueOn: dateKey(addDays(base, interval)), completedOn: null }))
+        };
+        studies.unshift(study);
+        shiftMissedSchedules();
+        selectedDate = study.reviews.filter((review) => !review.completedOn).map((review) => review.dueOn).sort()[0] || dateKey(today);
+        displayMonth = new Date(parseKey(selectedDate).getFullYear(), parseKey(selectedDate).getMonth(), 1);
+        closeDialog();
+        event.target.reset(); $('#studiedOn').value = dateKey(today);
+        renderAll(); showToast('5回分の復習予定を追加しました');
+      }
+      function completeReview(value) {
+        const [studyId, stepValue] = value.split(':');
+        const study = studies.find((item) => item.id === studyId);
+        const review = study?.reviews.find((item) => item.step === Number(stepValue));
+        if (!review) return;
+        review.completedOn = dateKey(today);
+        saveStudies(); renderAll(); showToast('復習を完了にしました。おつかれさまです！');
+      }
+      let toastTimer;
+      function showToast(message) { const toast = $('#toast'); toast.textContent = message; toast.classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('visible'), 2800); }
+
+      $('#openDialogButton').addEventListener('click', openDialog);
+      $('#openSettingsButton').addEventListener('click', openSettingsDialog);
+      $('#historyButton').addEventListener('click', showHistory);
+      $('#backToPlannerButton').addEventListener('click', showPlanner);
+      $('#closeDialogButton').addEventListener('click', closeDialog);
+      $('#cancelDialogButton').addEventListener('click', closeDialog);
+      $('#studyForm').addEventListener('submit', addStudy);
+      $('#settingsForm').addEventListener('submit', applySettings);
+      $('#closeSettingsButton').addEventListener('click', closeSettingsDialog);
+      $('#cancelSettingsButton').addEventListener('click', closeSettingsDialog);
+      $('#closeCalendarDeleteButton').addEventListener('click', closeCalendarDeleteDialog);
+      $('#deleteOnlyThisButton').addEventListener('click', () => deleteCalendarSchedule(false));
+      $('#deleteFromThisButton').addEventListener('click', () => deleteCalendarSchedule(true));
+      $('#subject').addEventListener('input', updateStartPageHint);
+      $('#studiedOn').addEventListener('change', updateSchedulePreview);
+      $('#previousMonth').addEventListener('click', () => { displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1); renderCalendar(); });
+      $('#nextMonth').addEventListener('click', () => { displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1); renderCalendar(); });
+      $('#resetButton').addEventListener('click', () => { if (studies.length && confirm('すべての学習記録を削除しますか？ この操作は取り消せません。')) { studies = []; saveStudies(); renderAll(); showToast('すべての学習記録を削除しました'); } });
+      $('#studiedOn').value = dateKey(today);
+      ensureDemoData();
+      shiftMissedSchedules();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
